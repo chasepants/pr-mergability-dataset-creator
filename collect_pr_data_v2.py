@@ -11,7 +11,7 @@ load_dotenv()
 # Read environment variables
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPOSITORIES = os.getenv("REPOSITORIES")
-
+print(REPOSITORIES)
 # Validate environment variables
 if not GITHUB_TOKEN:
     raise ValueError("GITHUB_TOKEN environment variable is not set")
@@ -75,7 +75,7 @@ def get_user_stats(username):
     created_at = user_data.get("created_at", "")
     public_repos = user_data.get("public_repos", 0)
 
-    # Approximate merged PRs via search (limited due to rate limits)
+    # Approximate merged PRs via search
     search_url = f"{BASE_URL}/search/issues?q=is:pr is:merged author:{username}"
     search_response = requests.get(search_url, headers=headers)
     merged_prs = search_response.json().get("total_count", 0) if search_response.status_code == 200 else 0
@@ -113,6 +113,18 @@ def extract_features(pr, repo):
     # Extract labels
     labels = [label["name"] for label in pr.get("labels", [])]
 
+    # Calculate PR age in days
+    pr_age_days = 0
+    created_at = pr.get("created_at", "")
+    closed_at = pr.get("closed_at", None)
+    if created_at:
+        try:
+            created_date = datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%SZ")
+            end_date = datetime.strptime(closed_at, "%Y-%m-%dT%H:%M:%SZ") if closed_at else datetime.now()
+            pr_age_days = (end_date - created_date).days
+        except ValueError:
+            pass
+
     features = {
         "pr_number": pr["number"],
         "additions": detailed_pr.get("additions", 0),
@@ -120,6 +132,7 @@ def extract_features(pr, repo):
         "changed_files": detailed_pr.get("changed_files", 0),
         "comments": pr.get("comments", 0) + pr.get("review_comments", 0),
         "commits": commits,
+        "author": pr["user"]["login"] if pr.get("user") else "unknown",
         "author_account_age_days": user_stats["account_age_days"],
         "author_public_repos": user_stats["public_repos"],
         "author_merged_prs": user_stats["merged_prs"],
@@ -129,7 +142,8 @@ def extract_features(pr, repo):
         "has_milestone": pr["milestone"] is not None,
         "requested_reviewers_count": len(pr.get("requested_reviewers", [])),
         "description": detailed_pr.get("body", "") or "",
-        "changed_files_list": ",".join(changed_files_list) if changed_files_list else ""
+        "changed_files_list": ",".join(changed_files_list) if changed_files_list else "",
+        "pr_age_days": pr_age_days
     }
     return features
 
@@ -142,10 +156,10 @@ def main():
     with open("pr_data.csv", "w", newline="", encoding="utf-8") as csvfile:
         fieldnames = [
             "pr_number", "additions", "deletions", "changed_files", "comments", 
-            "commits", "author_account_age_days", "author_public_repos", 
+            "commits", "author", "author_account_age_days", "author_public_repos", 
             "author_merged_prs", "author_site_admin", "title", "labels", 
             "has_milestone", "requested_reviewers_count", "description", 
-            "changed_files_list", "merged"
+            "changed_files_list", "pr_age_days", "merged"
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
@@ -153,9 +167,12 @@ def main():
         for repo in repositories:
             print(f"Collecting data from {repo}...")
             try:
-                prs = get_pull_requests(repo, max_prs=5)
+                prs = get_pull_requests(repo, max_prs=100)
                 for pr in prs:
                     features = extract_features(pr, repo)
+                    if features and "author" in features and "dependabot" in features["author"].lower():
+                        print(f"Skipping Dependabot PR {features['pr_number']} from {repo}")
+                        continue  # Skip Dependabot PRs, continue with others
                     if features:
                         merged = is_merged(pr)
                         writer.writerow({**features, "merged": merged})
