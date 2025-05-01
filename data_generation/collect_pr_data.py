@@ -90,7 +90,7 @@ def is_merged(pr):
 
 def main():
     """Collect pull request data and save it to a CSV file."""
-    with open("pr_data.csv", "w", newline="", encoding="utf-8") as csvfile:
+    with open("pr_data_v1.csv", "w", newline="", encoding="utf-8") as csvfile:
         fieldnames = ["pr_number", "additions", "deletions", "changed_files", 
                       "comments", "commits", "author", "description", 
                       "changed_files_list", "merged"]
@@ -100,7 +100,7 @@ def main():
         for repo in repositories:
             print(f"Collecting data from {repo}...")
             try:
-                prs = get_pull_requests(repo, max_prs=100)
+                prs = get_pull_requests(repo, max_prs=5)
                 for pr in prs:
                     features = extract_features(pr, repo)
                     if features["author"].find("dependabot") > -1:

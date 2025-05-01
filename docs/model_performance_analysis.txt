@@ -1,0 +1,36 @@
+START: Evaluate Model Performance
+├── Q1: Is the overall performance acceptable? (e.g., F1-score > 0.75, ROC-AUC > 0.80)
+│   ├── Yes: Model is good!
+│   │   ├── Action: Deploy, monitor, or refine for marginal gains (e.g., hyperparameter tuning).
+│   │   └── Optional: Add more data or features for incremental improvement.
+│   └── No: Proceed to Q2.
+├── Q2: Is the training error high? (e.g., low F1-score on training set)
+│   ├── Yes: Underfitting (high bias)
+│   │   ├── Action 1: Add more features or engineer new ones (e.g., has_linked_issue).
+│   │   ├── Action 2: Use a more complex model (e.g., XGBoost, neural network).
+│   │   ├── Action 3: Increase model capacity (e.g., more trees in Random Forest).
+│   │   └── Action 4: Check data quality (e.g., noisy labels, missing values).
+│   └── No: Training error is low, proceed to Q3.
+├── Q3: Is the test error much higher than training error? (e.g., test F1-score << train F1-score)
+│   ├── Yes: Overfitting (high variance)
+│   │   ├── Action 1: Add more data (e.g., increase max_prs to 20).
+│   │   ├── Action 2: Reduce model complexity (e.g., fewer trees, max_depth).
+│   │   ├── Action 3: Add regularization (e.g., min_samples_split in Random Forest).
+│   │   ├── Action 4: Remove noisy features (e.g., drop title_length if low importance).
+│   │   └── Action 5: Use cross-validation to stabilize performance.
+│   └── No: Model is balanced, proceed to Q4.
+├── Q4: Is the performance uneven across classes? (e.g., low F1-score for minority class)
+│   ├── Yes: Class imbalance or class-specific issues
+│   │   ├── Action 1: Adjust class weights (e.g., {False: 2, True: 1}).
+│   │   ├── Action 2: Use oversampling (e.g., SMOTE) or undersampling.
+│   │   ├── Action 3: Add features specific to minority class (e.g., has_linked_issue for non-merged PRs).
+│   │   ├── Action 4: Try a model better suited for imbalance (e.g., XGBoost with scale_pos_weight).
+│   │   └── Action 5: Collect more data for minority class (e.g., more non-merged PRs).
+│   └── No: Performance is consistent, proceed to Q5.
+└── Q5: Can performance be improved with more data or features?
+    ├── Yes: Iterate
+    │   ├── Action 1: Add more data (e.g., increase max_prs, add repos).
+    │   ├── Action 2: Engineer new features (e.g., has_linked_issue).
+    │   ├── Action 3: Fine-tune hyperparameters (e.g., grid search for n_estimators).
+    │   └── Action 4: Try a different model (e.g., XGBoost, LightGBM).
+    └── No: Model is optimized, deploy or monitor.
