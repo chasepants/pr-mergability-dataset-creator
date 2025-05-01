@@ -1,11 +1,12 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pickle
 from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, roc_auc_score
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 # Set pandas option to avoid FutureWarning
 pd.set_option('future.no_silent_downcasting', True)
@@ -20,7 +21,7 @@ data = data.dropna()
 required_columns = ['comments', 'additions', 'description_length']
 for col in required_columns:
     if col not in data.columns:
-        raise KeyError(f"Column '{col}' not found in dataset. Check pr_data_04302025.csv.")
+        raise KeyError(f"Column '{col}' not found in dataset. Check pr_data_0429.csv.")
 
 # Features (exclude requested_reviewers_count, has_milestone, has_pr_age, has_comments, changed_files, commits, deletions, title_length, has_large_pr)
 features = [
@@ -120,6 +121,13 @@ plt.xlabel("Likelihood Score")
 plt.ylabel("Count")
 plt.savefig("likelihood_distribution.png")  # Save plot
 plt.close()
+
+# Its important to use binary mode
+model_file = open('models/xg_boost_0501', 'ab')
+
+# source, destination
+pickle.dump(clf, model_file)                    
+model_file.close()
 
 # (venv) chase@chase-Lenovo-YOGA-C930-13IKB:~/pr-merge-predictor$ python3 model_builders/xg_boost_0501.py 
 # Feature Data Types Before Scaling:
