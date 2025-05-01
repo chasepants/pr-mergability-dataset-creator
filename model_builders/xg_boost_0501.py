@@ -34,10 +34,15 @@ y = data["merged"]
 
 # Preprocessing
 # Cap outliers at 95th percentile
+quantiles = {}
 for col in ["additions", "comments", "author_merged_prs", "description_length", "pr_age_days",
             "author_public_repos"]:
-    cap = X[col].quantile(0.95)
-    X[col] = X[col].clip(upper=cap)
+    quantiles[col] = X[col].quantile(0.95)
+    X[col] = X[col].clip(upper=quantiles[col])
+
+# Save quantiles for testing
+with open("models/quantiles_0501.pkl", "wb") as f:
+    pickle.dump(quantiles, f)
 
 # Clip negative values to 0 for log-transform
 for col in ["pr_age_days"]:
@@ -54,6 +59,10 @@ print(X.dtypes)
 # Scale numeric features
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
+
+# Save scaler for testing
+with open("models/scaler_0501.pkl", "wb") as f:
+    pickle.dump(scaler, f)
 
 # Split data (80/20) and preserve indices
 X_train, X_test, y_train, y_test, X_train_indices, X_test_indices = train_test_split(
@@ -122,62 +131,6 @@ plt.ylabel("Count")
 plt.savefig("likelihood_distribution.png")  # Save plot
 plt.close()
 
-# Its important to use binary mode
-model_file = open('models/xg_boost_0501', 'ab')
-
-# source, destination
-pickle.dump(clf, model_file)                    
-model_file.close()
-
-# (venv) chase@chase-Lenovo-YOGA-C930-13IKB:~/pr-merge-predictor$ python3 model_builders/xg_boost_0501.py 
-# Feature Data Types Before Scaling:
-# additions                  float64
-# comments                   float64
-# author_account_age_days      int64
-# author_public_repos          int64
-# author_merged_prs          float64
-# description_length         float64
-# pr_age_days                float64
-# dtype: object
-# Cross-Validation F1-Macro Scores: [0.62690633 0.62173726 0.55266955 0.54614065 0.63271713]
-# Mean CV F1-Macro Score: 0.5960341841896126
-# Training Set Classification Report:
-#               precision    recall  f1-score   support
-
-#        False       1.00      0.92      0.96       342
-#         True       0.95      1.00      0.98       524
-
-#     accuracy                           0.97       866
-#    macro avg       0.98      0.96      0.97       866
-# weighted avg       0.97      0.97      0.97       866
-
-
-# Test Set Classification Report:
-#               precision    recall  f1-score   support
-
-#        False       0.85      0.74      0.79       102
-#         True       0.79      0.89      0.84       115
-
-#     accuracy                           0.82       217
-#    macro avg       0.82      0.81      0.81       217
-# weighted avg       0.82      0.82      0.81       217
-
-# Test Set ROC-AUC Score: 0.8973572037510658
-
-# Feature Importance:
-#                    Feature  Importance
-# 4        author_merged_prs    0.322045
-# 2  author_account_age_days    0.179344
-# 1                 comments    0.111674
-# 3      author_public_repos    0.104189
-# 5       description_length    0.097060
-# 6              pr_age_days    0.096897
-# 0                additions    0.088790
-
-# Sample Predictions:
-#      PR Number  Actual Merged  Predicted Merged  Merge Likelihood
-# 56        1075           True                 1          0.990309
-# 428      32968          False                 1          0.727799
-# 589      29798           True                 0          0.193666
-# 558      29858           True                 1          0.994974
-# 51        1080           True                 1          0.984052
+# Save model in binary mode (overwrite, not append)
+with open("models/xg_boost_0501", "wb") as f:
+    pickle.dump(clf, f)
