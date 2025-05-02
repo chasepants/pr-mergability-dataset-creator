@@ -191,9 +191,8 @@ X_pr_scaled = preprocess_input(features_df, scaler, training_quantiles)
 # Make prediction
 prediction = loaded_model.predict(X_pr_scaled)[0]
 probability = loaded_model.predict_proba(X_pr_scaled)[0]
-print(f"PR {pr_number} Prediction: {'Merged' if prediction else 'Not Merged'}")
-print(f"Merge Likelihood: {probability[1]:.4f} (Not Merged: {probability[0]:.4f})")
-
+print(f"PR {pr_number} Prediction: {'Will be merged' if prediction else 'Will not be Merged'}")
+print(f"Merge Likelihood: {probability[1]:.4f} (Not Merged Likelihood: {probability[0]:.4f})")
 
 
 # EXAMPLE Output
